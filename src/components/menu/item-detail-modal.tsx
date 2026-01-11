@@ -6,7 +6,6 @@ import { cn } from '@/lib/utils';
 import { formatCurrency } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import {
   Dialog,
@@ -185,7 +184,7 @@ export function ItemDetailModal({ item, isOpen, onClose }: ItemDetailModalProps)
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent
         className={cn(
-          'flex flex-col max-h-[90vh] p-0',
+          'flex flex-col max-h-[90vh] h-[90vh] p-0 overflow-hidden',
           isKiosk ? 'sm:max-w-xl' : 'sm:max-w-lg'
         )}
       >
@@ -235,8 +234,8 @@ export function ItemDetailModal({ item, isOpen, onClose }: ItemDetailModalProps)
         </DialogHeader>
 
         {/* Scrollable content */}
-        <ScrollArea className="flex-1 px-6">
-          <div className="space-y-6 pb-4">
+        <div className="flex-1 overflow-y-auto px-6">
+          <div className="space-y-6 py-4">
             {/* Variant selector */}
             {item.variants.length > 0 && (
               <>
@@ -245,6 +244,7 @@ export function ItemDetailModal({ item, isOpen, onClose }: ItemDetailModalProps)
                   selectedVariantId={selectedVariant?.id || null}
                   onSelect={setSelectedVariant}
                   basePrice={item.basePrice}
+                  displayType={item.variantDisplayType}
                 />
                 <Separator />
               </>
@@ -281,7 +281,7 @@ export function ItemDetailModal({ item, isOpen, onClose }: ItemDetailModalProps)
               />
             </div>
           </div>
-        </ScrollArea>
+        </div>
 
         {/* Footer with quantity and add button */}
         <div className="border-t p-4 space-y-4 bg-background">

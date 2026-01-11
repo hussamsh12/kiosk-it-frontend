@@ -4,13 +4,17 @@ import { Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatCurrency } from '@/lib/utils';
 import { useIsKioskMode } from '@/hooks';
-import type { ItemVariant } from '@/types';
+import { VariantChips } from './variant-chips';
+import { VariantSegmented } from './variant-segmented';
+import { VariantCards } from './variant-cards';
+import type { ItemVariant, VariantDisplayType } from '@/types';
 
 interface VariantSelectorProps {
   variants: ItemVariant[];
   selectedVariantId: string | null;
   onSelect: (variant: ItemVariant) => void;
   basePrice: number;
+  displayType?: VariantDisplayType;
 }
 
 export function VariantSelector({
@@ -18,20 +22,40 @@ export function VariantSelector({
   selectedVariantId,
   onSelect,
   basePrice,
+  displayType = 'CHIPS',
 }: VariantSelectorProps) {
-  const isKiosk = useIsKioskMode();
+  if (variants.length === 0) return null;
 
-  if (variants.length === 0) {
-    return null;
+  // Resolve display type: AUTO defaults to RADIO
+  const resolvedDisplayType = displayType === 'AUTO' ? 'RADIO' : displayType;
+
+  // Route to specialized component based on display type
+  switch (resolvedDisplayType) {
+    case 'CHIPS':
+      return <VariantChips variants={variants} selectedVariantId={selectedVariantId} onSelect={onSelect} basePrice={basePrice} />;
+    case 'SEGMENTED':
+      return <VariantSegmented variants={variants} selectedVariantId={selectedVariantId} onSelect={onSelect} basePrice={basePrice} />;
+    case 'CARDS':
+      return <VariantCards variants={variants} selectedVariantId={selectedVariantId} onSelect={onSelect} basePrice={basePrice} />;
+    case 'RADIO':
+    default:
+      return <VariantRadio variants={variants} selectedVariantId={selectedVariantId} onSelect={onSelect} basePrice={basePrice} />;
   }
+}
+
+// Default Radio implementation
+function VariantRadio({
+  variants,
+  selectedVariantId,
+  onSelect,
+  basePrice,
+}: Omit<VariantSelectorProps, 'displayType'>) {
+  const isKiosk = useIsKioskMode();
 
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <h4 className={cn(
-          'font-semibold',
-          isKiosk ? 'text-lg' : 'text-base'
-        )}>
+        <h4 className={cn('font-semibold', isKiosk ? 'text-lg' : 'text-base')}>
           Size
         </h4>
         <span className="text-sm text-muted-foreground">Required</span>
@@ -69,10 +93,7 @@ export function VariantSelector({
                 )}>
                   {isSelected && <Check className="w-3 h-3 text-primary-foreground" />}
                 </div>
-                <span className={cn(
-                  'font-medium',
-                  isKiosk && 'text-lg'
-                )}>
+                <span className={cn('font-medium', isKiosk && 'text-lg')}>
                   {variant.name}
                 </span>
                 {!variant.isAvailable && (
@@ -81,10 +102,7 @@ export function VariantSelector({
               </div>
 
               <div className="text-right">
-                <span className={cn(
-                  'font-semibold',
-                  isKiosk && 'text-lg'
-                )}>
+                <span className={cn('font-semibold', isKiosk && 'text-lg')}>
                   {formatCurrency(totalPrice)}
                 </span>
                 {priceLabel && (

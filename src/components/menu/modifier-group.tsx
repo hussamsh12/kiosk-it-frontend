@@ -5,7 +5,10 @@ import { cn } from '@/lib/utils';
 import { formatCurrency } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { useIsKioskMode } from '@/hooks';
-import type { ModifierGroup, Modifier } from '@/types';
+import { ModifierChips } from './modifier-chips';
+import { ModifierSegmented } from './modifier-segmented';
+import { ModifierCards } from './modifier-cards';
+import type { ModifierGroup, Modifier, ModifierDisplayType } from '@/types';
 
 interface ModifierGroupSelectorProps {
   group: ModifierGroup;
@@ -18,39 +21,58 @@ export function ModifierGroupSelector({
   selectedModifierIds,
   onToggle,
 }: ModifierGroupSelectorProps) {
+  // Resolve display type: AUTO uses radio/checkbox based on maxSelections
+  const resolvedDisplayType = resolveDisplayType(group.displayType, group.maxSelections);
+
+  // Route to specialized component based on display type
+  switch (resolvedDisplayType) {
+    case 'CHIPS':
+      return <ModifierChips group={group} selectedModifierIds={selectedModifierIds} onToggle={onToggle} />;
+    case 'SEGMENTED':
+      return <ModifierSegmented group={group} selectedModifierIds={selectedModifierIds} onToggle={onToggle} />;
+    case 'CARDS':
+      return <ModifierCards group={group} selectedModifierIds={selectedModifierIds} onToggle={onToggle} />;
+    case 'RADIO':
+    case 'CHECKBOX':
+    default:
+      return <ModifierRadioCheckbox group={group} selectedModifierIds={selectedModifierIds} onToggle={onToggle} />;
+  }
+}
+
+function resolveDisplayType(displayType: ModifierDisplayType, maxSelections: number): ModifierDisplayType {
+  if (displayType === 'AUTO') {
+    return maxSelections === 1 ? 'RADIO' : 'CHECKBOX';
+  }
+  return displayType;
+}
+
+// Default Radio/Checkbox implementation
+function ModifierRadioCheckbox({
+  group,
+  selectedModifierIds,
+  onToggle,
+}: ModifierGroupSelectorProps) {
   const isKiosk = useIsKioskMode();
   const selectedCount = group.modifiers.filter(m => selectedModifierIds.has(m.id)).length;
 
-  // Derive isRequired from minSelections
   const isRequired = group.minSelections > 0;
-
-  // Build requirement label
-  let requirementLabel = '';
-  if (isRequired) {
-    if (group.minSelections === group.maxSelections) {
-      requirementLabel = `Select ${group.minSelections}`;
-    } else {
-      requirementLabel = `Select ${group.minSelections}-${group.maxSelections}`;
-    }
-  } else {
-    if (group.maxSelections === 1) {
-      requirementLabel = 'Optional';
-    } else {
-      requirementLabel = `Select up to ${group.maxSelections}`;
-    }
-  }
-
-  // Check if selection is valid
   const isValid = !isRequired || selectedCount >= group.minSelections;
   const canSelectMore = selectedCount < group.maxSelections;
+  const isRadio = group.maxSelections === 1;
+
+  let requirementLabel = '';
+  if (isRequired) {
+    requirementLabel = group.minSelections === group.maxSelections
+      ? `Select ${group.minSelections}`
+      : `Select ${group.minSelections}-${group.maxSelections}`;
+  } else {
+    requirementLabel = group.maxSelections === 1 ? 'Optional' : `Select up to ${group.maxSelections}`;
+  }
 
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <h4 className={cn(
-          'font-semibold',
-          isKiosk ? 'text-lg' : 'text-base'
-        )}>
+        <h4 className={cn('font-semibold', isKiosk ? 'text-lg' : 'text-base')}>
           {group.name}
         </h4>
         <Badge variant={isValid ? 'secondary' : 'destructive'} className="text-xs">
@@ -61,8 +83,9 @@ export function ModifierGroupSelector({
       <div className="grid gap-2">
         {group.modifiers.map((modifier) => {
           const isSelected = selectedModifierIds.has(modifier.id);
-          const isDisabled = !modifier.isAvailable || (!isSelected && !canSelectMore);
-          const isRadio = group.maxSelections === 1;
+          // For radio behavior, always allow switching between options
+          // For checkbox, disable unselected options when max is reached
+          const isDisabled = !modifier.isAvailable || (!isRadio && !isSelected && !canSelectMore);
 
           return (
             <button
@@ -94,10 +117,7 @@ export function ModifierGroupSelector({
                     <Square className="w-5 h-5 text-muted-foreground/30" />
                   )
                 )}
-                <span className={cn(
-                  'font-medium',
-                  isKiosk && 'text-lg'
-                )}>
+                <span className={cn('font-medium', isKiosk && 'text-lg')}>
                   {modifier.name}
                 </span>
                 {!modifier.isAvailable && (
@@ -106,10 +126,7 @@ export function ModifierGroupSelector({
               </div>
 
               {modifier.price > 0 && (
-                <span className={cn(
-                  'font-medium text-muted-foreground',
-                  isKiosk && 'text-lg'
-                )}>
+                <span className={cn('font-medium text-muted-foreground', isKiosk && 'text-lg')}>
                   +{formatCurrency(modifier.price)}
                 </span>
               )}

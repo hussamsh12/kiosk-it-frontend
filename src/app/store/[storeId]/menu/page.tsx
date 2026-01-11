@@ -4,14 +4,15 @@ import { useState, useEffect, useMemo } from 'react';
 import { useSession } from '@/hooks';
 import { useUIStore } from '@/stores/ui-store';
 import { getMenu, getItemDetails } from '@/lib/api';
-import { CategoryList, ItemGrid, ItemDetailModal } from '@/components/menu';
+import { CategorySidebar, ItemGrid, ItemDetailModal } from '@/components/menu';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { ShoppingBag } from 'lucide-react';
 import type { Category, MenuItem, MenuItemBrief } from '@/types';
 
 export default function MenuPage() {
-  const { store, isInitialized } = useSession();
+  const { store, tenant, isInitialized } = useSession();
   const selectedCategoryId = useUIStore((state) => state.selectedCategoryId);
   const setSelectedCategory = useUIStore((state) => state.setSelectedCategory);
 
@@ -55,16 +56,14 @@ export default function MenuPage() {
     return category?.items || [];
   }, [categories, selectedCategoryId]);
 
-  // Get current category name
-  const currentCategoryName = useMemo(() => {
-    const category = categories.find((c) => c.id === selectedCategoryId);
-    return category?.name || '';
+  // Get current category
+  const currentCategory = useMemo(() => {
+    return categories.find((c) => c.id === selectedCategoryId);
   }, [categories, selectedCategoryId]);
 
   // Handle item selection - fetch full details for modal
   const handleSelectItem = async (briefItem: MenuItemBrief) => {
     try {
-      // Fetch full item details with variants and modifiers
       const fullItem = await getItemDetails(briefItem.id);
       setSelectedItem(fullItem);
       setIsItemModalOpen(true);
@@ -76,37 +75,42 @@ export default function MenuPage() {
   // Handle modal close
   const handleCloseModal = () => {
     setIsItemModalOpen(false);
-    // Delay clearing item to allow animation
     setTimeout(() => setSelectedItem(null), 200);
   };
 
   // Loading state
   if (isLoading) {
     return (
-      <div>
-        {/* Category bar skeleton */}
-        <div className="sticky top-16 z-40 bg-background border-b">
-          <div className="flex gap-2 p-4 overflow-hidden">
-            {[1, 2, 3, 4, 5].map((i) => (
-              <Skeleton key={i} className="h-10 w-24 flex-shrink-0" />
-            ))}
-          </div>
-        </div>
+      <div className="flex h-[calc(100vh-4rem)]">
+        {/* Sidebar skeleton */}
+        <aside className="w-48 lg:w-56 bg-background border-r p-4 space-y-4">
+          <Skeleton className="h-6 w-20" />
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="flex flex-col items-center space-y-2">
+              <Skeleton className="w-20 h-20 rounded-xl" />
+              <Skeleton className="h-4 w-16" />
+            </div>
+          ))}
+        </aside>
 
-        {/* Items grid skeleton */}
-        <div className="container px-4 py-6">
-          <Skeleton className="h-8 w-32 mb-4" />
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {[1, 2, 3, 4, 5, 6].map((i) => (
-              <div key={i} className="rounded-lg border bg-card overflow-hidden">
-                <Skeleton className="aspect-[4/3] w-full" />
-                <div className="p-3 space-y-2">
-                  <Skeleton className="h-5 w-3/4" />
-                  <Skeleton className="h-4 w-full" />
-                  <Skeleton className="h-5 w-1/3" />
+        {/* Main content skeleton */}
+        <div className="flex-1 flex flex-col">
+          <div className="h-20 border-b bg-background px-6 flex items-center">
+            <Skeleton className="h-8 w-48" />
+          </div>
+          <div className="flex-1 p-6">
+            <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <div key={i} className="rounded-xl border bg-card overflow-hidden">
+                  <Skeleton className="aspect-[4/3] w-full" />
+                  <div className="p-4 space-y-2">
+                    <Skeleton className="h-5 w-3/4" />
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-6 w-1/3" />
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
       </div>
@@ -116,14 +120,11 @@ export default function MenuPage() {
   // Error state
   if (error) {
     return (
-      <div className="container px-4 py-12">
-        <Card>
+      <div className="flex h-[calc(100vh-4rem)] items-center justify-center">
+        <Card className="max-w-md">
           <CardContent className="p-8 text-center">
             <p className="text-destructive mb-4">{error}</p>
-            <Button
-              variant="outline"
-              onClick={() => window.location.reload()}
-            >
+            <Button variant="outline" onClick={() => window.location.reload()}>
               Try Again
             </Button>
           </CardContent>
@@ -135,11 +136,13 @@ export default function MenuPage() {
   // Empty state
   if (categories.length === 0) {
     return (
-      <div className="container px-4 py-12">
-        <Card>
+      <div className="flex h-[calc(100vh-4rem)] items-center justify-center">
+        <Card className="max-w-md">
           <CardContent className="p-8 text-center">
+            <ShoppingBag className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <h2 className="text-xl font-semibold mb-2">No Menu Available</h2>
             <p className="text-muted-foreground">
-              No menu items available at the moment.
+              The menu for this store is not available yet.
             </p>
           </CardContent>
         </Card>
@@ -148,24 +151,45 @@ export default function MenuPage() {
   }
 
   return (
-    <div className="pb-safe-area-bottom">
-      {/* Category navigation */}
-      <CategoryList
+    <div className="flex h-[calc(100vh-4rem)]">
+      {/* Left Sidebar - Categories */}
+      <CategorySidebar
         categories={categories}
         selectedCategoryId={selectedCategoryId}
         onSelectCategory={setSelectedCategory}
       />
 
-      {/* Items */}
-      <div className="container px-4 py-6">
-        {currentCategoryName && (
-          <h2 className="text-xl font-semibold mb-4">{currentCategoryName}</h2>
-        )}
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Top Header Row */}
+        <header className="h-20 border-b bg-background px-6 flex items-center justify-between flex-shrink-0">
+          <div>
+            <h1 className="text-2xl font-bold">
+              {currentCategory?.name || 'Menu'}
+            </h1>
+            {currentCategory?.description && (
+              <p className="text-sm text-muted-foreground">
+                {currentCategory.description}
+              </p>
+            )}
+          </div>
+          <div className="text-sm text-muted-foreground">
+            {currentItems.length} {currentItems.length === 1 ? 'item' : 'items'}
+          </div>
+        </header>
 
-        <ItemGrid
-          items={currentItems}
-          onSelectItem={handleSelectItem}
-        />
+        {/* Items Grid */}
+        <div className="flex-1 overflow-y-auto p-6 bg-muted/30">
+          {currentItems.length === 0 ? (
+            <div className="flex items-center justify-center h-full">
+              <p className="text-muted-foreground">
+                No items in this category yet.
+              </p>
+            </div>
+          ) : (
+            <ItemGrid items={currentItems} onSelectItem={handleSelectItem} />
+          )}
+        </div>
       </div>
 
       {/* Item detail modal */}

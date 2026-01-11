@@ -2,6 +2,8 @@
 
 export type OrderSource = 'POS' | 'KIOSK' | 'QR_TABLE' | 'ONLINE';
 export type OrderStatus = 'PENDING' | 'CONFIRMED' | 'PREPARING' | 'READY' | 'COMPLETED' | 'CANCELLED';
+export type ModifierDisplayType = 'AUTO' | 'CHIPS' | 'SEGMENTED' | 'RADIO' | 'CHECKBOX' | 'CARDS';
+export type VariantDisplayType = 'AUTO' | 'CHIPS' | 'SEGMENTED' | 'RADIO' | 'CARDS';
 
 // ===== Tenant & Store =====
 
@@ -76,6 +78,7 @@ export interface MenuItem {
   galleryImages?: string[];
   isAvailable: boolean;
   displayOrder: number;
+  variantDisplayType: VariantDisplayType;
   variants: ItemVariant[];
   modifierGroups: ModifierGroup[];
 }
@@ -92,6 +95,7 @@ export interface ModifierGroup {
   name: string;
   minSelections: number;
   maxSelections: number;
+  displayType: ModifierDisplayType;
   modifiers: Modifier[];
 }
 
