@@ -26,7 +26,7 @@ src/
 │   ├── layout.tsx          # Root layout with providers
 │   ├── page.tsx            # Store selection (redirects if store selected)
 │   ├── globals.css         # Tailwind + display mode styles
-│   └── store/[storeId]/    # Store-specific routes
+│   └── store/[storeSlug]/  # Store-specific routes (slug from store name)
 │       ├── layout.tsx      # Store layout with header + cart
 │       ├── page.tsx        # Redirects to menu
 │       ├── menu/page.tsx   # Menu browsing
@@ -156,7 +156,7 @@ Access with tenant: `http://localhost:3000?tenant=demo`
 - [x] CartSidebar component (sheet with item list, totals)
 - [x] Store selection page (fetches stores, auto-selects single store)
 - [x] Store layout with header + cart sidebar
-- [x] Route structure: `/` → `/store/[storeId]/menu`
+- [x] Route structure: `/` → `/store/[storeSlug]/menu`
 - [x] Utility functions (formatCurrency, formatRelativeTime)
 
 ## Implemented (Phase 3 - Menu)
@@ -179,8 +179,8 @@ Access with tenant: `http://localhost:3000?tenant=demo`
 - [x] CheckoutForm component - order notes input
 - [x] OrderSummary component - item list and totals
 - [x] PlaceOrderButton - order creation with loading state
-- [x] Checkout page (`/store/[storeId]/checkout`)
-- [x] Order confirmation page (`/store/[storeId]/order/[orderId]`)
+- [x] Checkout page (`/store/[storeSlug]/checkout`)
+- [x] Order confirmation page (`/store/[storeSlug]/order/[orderId]`)
 - [x] Order status polling (10s interval)
 - [x] Cart sidebar checkout navigation
 - [x] Order source based on display mode (KIOSK/QR_TABLE)
@@ -189,9 +189,9 @@ Access with tenant: `http://localhost:3000?tenant=demo`
 
 - [x] Error boundary component (`components/error-boundary.tsx`)
 - [x] Global error page (`app/error.tsx`)
-- [x] Store-level error page (`app/store/[storeId]/error.tsx`)
+- [x] Store-level error page (`app/store/[storeSlug]/error.tsx`)
 - [x] Global loading page (`app/loading.tsx`)
-- [x] Store-level loading skeleton (`app/store/[storeId]/loading.tsx`)
+- [x] Store-level loading skeleton (`app/store/[storeSlug]/loading.tsx`)
 - [x] Not found page (`app/not-found.tsx`)
 - [x] Accessibility improvements:
   - ItemCard: keyboard navigation, ARIA labels, focus states
