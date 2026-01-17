@@ -1,8 +1,13 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useSessionStore } from '@/stores/session-store';
-import { api, setTokenStore, getCurrentTenant } from '@/lib/api';
+import { api, setTokenStore, getCurrentTenant, refreshDeviceToken } from '@/lib/api';
+
+// Proactive refresh threshold: 5 minutes before expiration
+const REFRESH_THRESHOLD_MS = 5 * 60 * 1000;
+// Check interval: every 1 minute
+const REFRESH_CHECK_INTERVAL_MS = 60 * 1000;
 
 interface SessionProviderProps {
   children: React.ReactNode;
@@ -39,8 +44,48 @@ export function SessionProvider({ children, tenantSlug }: SessionProviderProps) 
       setTokens: updateTokens,
       clearTokens: clearDeviceSession,
       isDeviceSession: () => useSessionStore.getState().isDeviceAuthenticated,
+      isTokenExpiringSoon: (thresholdMs) => useSessionStore.getState().isTokenExpiringSoon(thresholdMs),
     });
   }, [isHydrated, updateTokens, clearDeviceSession]);
+
+  // Proactive token refresh - check every minute and refresh if expiring soon
+  const proactiveRefresh = useCallback(async () => {
+    const state = useSessionStore.getState();
+
+    // Only refresh if we have a device session
+    if (!state.isDeviceAuthenticated || !state.refreshToken) {
+      return;
+    }
+
+    // Check if token is expiring soon (within threshold)
+    if (!state.isTokenExpiringSoon(REFRESH_THRESHOLD_MS)) {
+      return;
+    }
+
+    console.log('[SessionProvider] Token expiring soon, proactively refreshing...');
+
+    try {
+      const response = await refreshDeviceToken(state.refreshToken);
+      updateTokens(response.accessToken, response.refreshToken, response.expiresIn);
+      console.log('[SessionProvider] Proactive token refresh successful');
+    } catch (error) {
+      console.warn('[SessionProvider] Proactive token refresh failed:', error);
+      // Don't clear session on proactive refresh failure - the reactive refresh will handle it
+    }
+  }, [updateTokens]);
+
+  // Setup proactive refresh interval
+  useEffect(() => {
+    if (!isHydrated) return;
+
+    // Run immediately on mount (in case we're already close to expiration)
+    proactiveRefresh();
+
+    // Set up interval for periodic checks
+    const intervalId = setInterval(proactiveRefresh, REFRESH_CHECK_INTERVAL_MS);
+
+    return () => clearInterval(intervalId);
+  }, [isHydrated, proactiveRefresh]);
 
   // Initialize session (only once after hydration)
   useEffect(() => {

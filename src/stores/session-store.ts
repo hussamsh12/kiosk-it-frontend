@@ -19,13 +19,14 @@ interface SessionState {
   // Auth tokens
   accessToken: string | null;
   refreshToken: string | null;
+  tokenExpiresAt: number | null;  // Unix timestamp (ms) when access token expires
 
   // Status
   isInitialized: boolean;
 
   // Device Actions
-  setDeviceSession: (deviceInfo: DeviceInfo, accessToken: string, refreshToken: string) => void;
-  updateTokens: (accessToken: string, refreshToken: string) => void;
+  setDeviceSession: (deviceInfo: DeviceInfo, accessToken: string, refreshToken: string, expiresIn: number) => void;
+  updateTokens: (accessToken: string, refreshToken: string, expiresIn?: number) => void;
   clearDeviceSession: () => void;
 
   // Tenant/Store Actions
@@ -37,6 +38,9 @@ interface SessionState {
   // Token accessors for API client
   getAccessToken: () => string | null;
   getRefreshToken: () => string | null;
+
+  // Token expiration check
+  isTokenExpiringSoon: (thresholdMs?: number) => boolean;
 }
 
 const initialState = {
@@ -49,6 +53,7 @@ const initialState = {
   selectedStore: null,
   accessToken: null,
   refreshToken: null,
+  tokenExpiresAt: null,
   isInitialized: false,
 };
 
@@ -57,12 +62,13 @@ export const useSessionStore = create<SessionState>()(
     (set, get) => ({
       ...initialState,
 
-      setDeviceSession: (deviceInfo, accessToken, refreshToken) => set({
+      setDeviceSession: (deviceInfo, accessToken, refreshToken, expiresIn) => set({
         deviceSessionId: deviceInfo.sessionId,
         deviceInfo,
         isDeviceAuthenticated: true,
         accessToken,
         refreshToken,
+        tokenExpiresAt: Date.now() + expiresIn,
         // Set store if device is bound to a specific store
         selectedStoreId: deviceInfo.storeId || null,
         // Create minimal store object from device info if bound
@@ -75,18 +81,22 @@ export const useSessionStore = create<SessionState>()(
         isInitialized: true,
       }),
 
-      updateTokens: (accessToken, refreshToken) => {
+      updateTokens: (accessToken, refreshToken, expiresIn) => {
+        // Calculate expiration time - default to 1 hour if not provided
+        const tokenExpiresAt = expiresIn ? Date.now() + expiresIn : Date.now() + 3600000;
+
         // Update state
-        set({ accessToken, refreshToken });
+        set({ accessToken, refreshToken, tokenExpiresAt });
         // Force immediate localStorage persistence to prevent token loss on page refresh
         // This is a backup in case Zustand's async persist hasn't completed
         try {
-          const stored = localStorage.getItem('kiosk-session');
+          const stored = localStorage.getItem('tabletop-session');
           if (stored) {
             const parsed = JSON.parse(stored);
             parsed.state.accessToken = accessToken;
             parsed.state.refreshToken = refreshToken;
-            localStorage.setItem('kiosk-session', JSON.stringify(parsed));
+            parsed.state.tokenExpiresAt = tokenExpiresAt;
+            localStorage.setItem('tabletop-session', JSON.stringify(parsed));
           }
         } catch (e) {
           console.warn('[SessionStore] Failed to immediately persist tokens:', e);
@@ -99,6 +109,7 @@ export const useSessionStore = create<SessionState>()(
         isDeviceAuthenticated: false,
         accessToken: null,
         refreshToken: null,
+        tokenExpiresAt: null,
       }),
 
       setTenant: (slug, tenant) => set({
@@ -120,9 +131,16 @@ export const useSessionStore = create<SessionState>()(
       // Token accessors
       getAccessToken: () => get().accessToken,
       getRefreshToken: () => get().refreshToken,
+
+      // Check if token is expiring soon (default: 5 minutes)
+      isTokenExpiringSoon: (thresholdMs = 5 * 60 * 1000) => {
+        const { tokenExpiresAt, accessToken } = get();
+        if (!accessToken || !tokenExpiresAt) return false;
+        return Date.now() >= tokenExpiresAt - thresholdMs;
+      },
     }),
     {
-      name: 'kiosk-session',
+      name: 'tabletop-session',
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
         // Persist device session data
@@ -135,6 +153,7 @@ export const useSessionStore = create<SessionState>()(
         selectedStore: state.selectedStore,
         accessToken: state.accessToken,
         refreshToken: state.refreshToken,
+        tokenExpiresAt: state.tokenExpiresAt,
       }),
     }
   )

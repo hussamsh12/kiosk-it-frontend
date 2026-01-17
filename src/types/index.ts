@@ -82,6 +82,7 @@ export interface MenuItem {
   name: string;
   description?: string;
   basePrice: number;
+  imageUrl?: string;
   galleryImages?: string[];
   isAvailable: boolean;
   displayOrder: number;

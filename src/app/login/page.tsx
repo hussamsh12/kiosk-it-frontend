@@ -39,7 +39,7 @@ export default function LoginPage() {
 
   // Generate device name once on mount
   useEffect(() => {
-    setDeviceName(`Kiosk-${Date.now()}`);
+    setDeviceName(`TableTop-${Date.now()}`);
   }, []);
 
   const handleCredentialsSubmit = async (e: React.FormEvent) => {
@@ -69,7 +69,7 @@ export default function LoginPage() {
       setPendingAuth(response);
 
       // Set the session so API client has tokens
-      setDeviceSession(response.device, response.accessToken, response.refreshToken);
+      setDeviceSession(response.device, response.accessToken, response.refreshToken, response.expiresIn);
 
       // Fetch available stores (pass token directly to avoid timing issues)
       setIsLoadingStores(true);
@@ -129,8 +129,8 @@ export default function LoginPage() {
     // Clear any existing cart from previous session
     clearCart();
 
-    // Set device session in store
-    setDeviceSession(response.device, response.accessToken, response.refreshToken);
+    // Set device session in store (include expiresIn for proactive token refresh)
+    setDeviceSession(response.device, response.accessToken, response.refreshToken, response.expiresIn);
 
     // Set tenant ID for API calls
     api.setTenantId(response.device.tenantId);
@@ -178,7 +178,7 @@ export default function LoginPage() {
             <div className="mx-auto mb-4 w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
               <Monitor className="w-6 h-6 text-primary" />
             </div>
-            <CardTitle className="text-2xl">{t('login.title', 'Kiosk Setup')}</CardTitle>
+            <CardTitle className="text-2xl">{t('login.title', 'Device Setup')}</CardTitle>
             <CardDescription>
               {t('login.description', 'Enter administrator credentials to configure this kiosk')}
             </CardDescription>

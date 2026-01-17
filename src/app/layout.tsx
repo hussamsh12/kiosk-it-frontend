@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Kiosk-IT | Self-Service Ordering',
+  title: 'TableTop | Self-Service Ordering',
   description: 'Order food and drinks from your favorite restaurants',
 };
 

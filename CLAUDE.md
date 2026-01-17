@@ -1,6 +1,6 @@
 # CLAUDE.md - Frontend Context
 
-## Project: kiosk-it-customer
+## Project: tabletop-customer
 
 Next.js 14+ web application for customer self-service ordering, supporting kiosk tablets, hybrid native shells, and QR code phone ordering.
 

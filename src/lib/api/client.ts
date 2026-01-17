@@ -15,9 +15,10 @@ interface RequestConfig {
 interface TokenStore {
   getAccessToken: () => string | null;
   getRefreshToken: () => string | null;
-  setTokens: (access: string, refresh: string) => void;
+  setTokens: (access: string, refresh: string, expiresIn?: number) => void;
   clearTokens: () => void;
   isDeviceSession?: () => boolean;  // For device token refresh
+  isTokenExpiringSoon?: (thresholdMs?: number) => boolean;  // For proactive refresh
 }
 
 // Token store will be injected from session store
@@ -81,8 +82,8 @@ class ApiClient {
       }
 
       const data = await response.json();
-      tokenStore.setTokens(data.accessToken, data.refreshToken);
-      console.log('[ApiClient] Token refresh successful');
+      tokenStore.setTokens(data.accessToken, data.refreshToken, data.expiresIn);
+      console.log('[ApiClient] Token refresh successful, expires in:', data.expiresIn);
       return true;
     } catch (error) {
       // Network errors should NOT clear tokens - it might be a transient issue
